@@ -42,12 +42,10 @@
     min-height: 100vh;
     background: var(--bg);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     display: flex;
     flex-direction: column;
   }
-
-  /* SCREENS */
   .screen { display: none; flex-direction: column; flex: 1; overflow-y: auto; padding-bottom: 90px; }
   .screen.active { display: flex; }
   .screen::-webkit-scrollbar { display: none; }
@@ -149,7 +147,7 @@
   .badge { background: rgba(255,255,255,.18); border-radius: 20px; padding: 3px 10px; font-size: 12px; font-weight: 600; }
   .badge.red { background: rgba(240,82,82,.3); }
   .hero-sub { font-size: 12px; opacity: .65; margin-top: 8px; }
-  .hero-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; }
+  .hero-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; position: relative; z-index: 1; }
   .hero-btn {
     background: rgba(255,255,255,.15);
     border: 1px solid rgba(255,255,255,.25);
@@ -721,6 +719,18 @@
       </div>
     </div>
     <div class="settings-section">
+      <div class="settings-section-title" style="margin-bottom:10px">Currency</div>
+      <div class="settings-group">
+        <div class="settings-item" style="cursor:default">
+          <div><div class="settings-item-label">Display Currency</div><div class="settings-item-sub" id="setting-currency-sub">USD — US Dollar</div></div>
+          <div style="display:flex;gap:8px">
+            <button id="btn-usd" onclick="setCurrency('USD')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--blue);color:white;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🇺🇸 USD</button>
+            <button id="btn-ghs" onclick="setCurrency('GHS')" style="padding:6px 14px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--text-2);font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s">🇬🇭 GHS</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-section">
       <div class="settings-section-title" style="margin-bottom:10px">AI Settings</div>
       <div class="settings-group">
         <div class="settings-item" onclick="openModal('modal-api-key')">
@@ -764,6 +774,10 @@
     <div class="nav-item" id="nav-investments" onclick="switchTab('investments')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
       Invest
+    </div>
+    <div class="nav-item" id="nav-ai" onclick="switchTab('ai')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a4 4 0 014 4v1h1a3 3 0 013 3v7a3 3 0 01-3 3H7a3 3 0 01-3-3V10a3 3 0 013-3h1V6a4 4 0 014-4z"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="15" cy="13" r="1" fill="currentColor"/><path d="M9 17c.833.667 1.667 1 3 1s2.167-.333 3-1"/></svg>
+      AI
     </div>
     <div class="nav-item" id="nav-settings" onclick="switchTab('settings')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 010 14.14M4.93 4.93a10 10 0 000 14.14"/></svg>
@@ -998,7 +1012,18 @@ let state = {
   transactions: [],
   investments: [],
   geminiKey: '',
+  currency: 'USD',
 };
+
+const CURRENCIES = {
+  USD: { symbol: '$', label: 'USD', flag: '🇺🇸' },
+  GHS: { symbol: '₵', label: 'GHS', flag: '🇬🇭' },
+};
+
+function fmtCurrency(amount) {
+  const { symbol } = CURRENCIES[state.currency] || CURRENCIES.USD;
+  return symbol + amount.toFixed(2);
+}
 let currentTxType = 'expense';
 let currentInvType = 'stocks';
 let currentTxFilter = 'all';
@@ -1047,6 +1072,7 @@ function init() {
   buildTxCatPills();
   renderAll();
   updateSettingsUI();
+  updateAmountPrefixes();
   overlayClose();
 }
 function overlayClose() {
@@ -1186,7 +1212,7 @@ function openTxDetail(id) {
   document.getElementById('tx-detail-content').innerHTML = `
     <div style="text-align:center;padding:16px 0">
       <div style="font-size:48px">${cat.icon}</div>
-      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin:8px 0;color:${tx.type==='income'?'var(--green)':'var(--text)'}">${tx.type==='income'?'+':'-'}$${tx.amount.toFixed(2)}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin:8px 0;color:${tx.type==='income'?'var(--green)':'var(--text)'}">${tx.type==='income'?'+':'-'}${fmtCurrency(tx.amount)}</div>
       <div style="font-size:14px;color:var(--text-2)">${tx.merchant || label}</div>
     </div>
     <div class="settings-group">
@@ -1276,7 +1302,7 @@ function openInvDetail(id) {
   document.getElementById('inv-detail-content').innerHTML = `
     <div style="text-align:center;padding:16px 0">
       <div style="font-size:48px">${t.icon}</div>
-      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin:8px 0">$${inv.amount.toFixed(2)}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;margin:8px 0">${fmtCurrency(inv.amount)}</div>
       <div style="font-size:14px;color:var(--text-2)">${inv.name}</div>
     </div>
     <div class="settings-group">
@@ -1316,10 +1342,33 @@ function saveApiKey(remove) {
   state.geminiKey = key;
   save(); closeModal('modal-api-key'); notify(key ? 'API key saved ✓' : 'Key cleared'); updateSettingsUI();
 }
+function setCurrency(code) {
+  state.currency = code;
+  save(); renderAll(); updateSettingsUI(); updateAmountPrefixes();
+  notify(`Currency set to ${code} ✓`);
+}
+
+function updateAmountPrefixes() {
+  const sym = CURRENCIES[state.currency]?.symbol || '$';
+  document.querySelectorAll('.amount-prefix').forEach(el => el.textContent = sym);
+}
+
 function updateSettingsUI() {
-  document.getElementById('setting-budget-sub').textContent = state.budget ? `$${state.budget.toFixed(2)}/month` : 'Not set';
-  document.getElementById('setting-limit-sub').textContent = state.spendingLimit ? `$${state.spendingLimit.toFixed(2)}/month` : 'Not set';
+  const cur = state.currency || 'USD';
+  const sym = CURRENCIES[cur].symbol;
+  document.getElementById('setting-budget-sub').textContent = state.budget ? `${sym}${state.budget.toFixed(2)}/month` : 'Not set';
+  document.getElementById('setting-limit-sub').textContent = state.spendingLimit ? `${sym}${state.spendingLimit.toFixed(2)}/month` : 'Not set';
   document.getElementById('setting-api-sub').textContent = state.geminiKey ? '●●●●●●●● (set)' : 'Not configured';
+  const currencies = { USD: '🇺🇸 USD — US Dollar', GHS: '🇬🇭 GHS — Ghanaian Cedi' };
+  document.getElementById('setting-currency-sub').textContent = currencies[cur] || cur;
+  ['USD','GHS'].forEach(c => {
+    const btn = document.getElementById('btn-' + c.toLowerCase());
+    if (btn) {
+      btn.style.background = cur === c ? 'var(--blue)' : 'var(--surface2)';
+      btn.style.color = cur === c ? 'white' : 'var(--text-2)';
+      btn.style.borderColor = cur === c ? 'var(--blue)' : 'var(--border)';
+    }
+  });
 }
 function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
@@ -1332,7 +1381,7 @@ function exportData() {
 function confirmClearData() {
   if (confirm('Clear ALL data? This cannot be undone.')) {
     localStorage.removeItem('flo_state');
-    state = { balance: 0, accountName: 'My Account', budget: 0, spendingLimit: 0, transactions: [], investments: [], geminiKey: '' };
+    state = { balance: 0, accountName: 'My Account', budget: 0, spendingLimit: 0, transactions: [], investments: [], geminiKey: '', currency: 'USD' };
     renderAll(); notify('Data cleared');
   }
 }
@@ -1360,16 +1409,16 @@ function renderDashboard() {
   // Hero
   const prevBal = state.balance;
   const changePct = prevBal ? ((balance - prevBal) / prevBal * 100) : 0;
-  document.getElementById('dash-balance').textContent = '$' + balance.toFixed(2);
+  document.getElementById('dash-balance').textContent = fmtCurrency(balance);
   const badge = document.getElementById('dash-balance-badge');
   badge.textContent = (changePct >= 0 ? '+' : '') + changePct.toFixed(1) + '%';
   badge.className = 'badge ' + (changePct < 0 ? 'red' : '');
   document.getElementById('dash-account').textContent = state.accountName || 'Monthly Overview';
-  document.getElementById('dash-limit-inline').textContent = state.spendingLimit ? '$' + state.spendingLimit.toFixed(2) : 'not set';
+  document.getElementById('dash-limit-inline').textContent = state.spendingLimit ? fmtCurrency(state.spendingLimit) : 'not set';
   // Stats
-  document.getElementById('dash-spending').textContent = '$' + expenses.toFixed(2);
+  document.getElementById('dash-spending').textContent = fmtCurrency(expenses);
   const rem = state.budget ? state.budget - expenses : balance;
-  document.getElementById('dash-remaining').textContent = '$' + Math.max(0, rem).toFixed(2);
+  document.getElementById('dash-remaining').textContent = fmtCurrency(Math.max(0, rem));
   document.getElementById('dash-remaining-sub').textContent = state.budget ? 'of budget' : 'after expenses';
   // Ring
   const circ = 364.4;
@@ -1383,10 +1432,10 @@ function renderDashboard() {
     infoEl.textContent = 'Set a budget to start tracking';
     infoEl.className = 'budget-info';
   } else if (expenses > state.budget) {
-    infoEl.innerHTML = `<span style="color:var(--red)">⚠️ Over budget by <strong>$${(expenses - state.budget).toFixed(2)}</strong></span>`;
+    infoEl.innerHTML = `<span style="color:var(--red)">⚠️ Over budget by <strong>${fmtCurrency(expenses - state.budget)}</strong></span>`;
     infoEl.className = 'budget-info over-budget';
   } else {
-    infoEl.innerHTML = `You have <strong>$${(state.budget - expenses).toFixed(2)}</strong> left of your monthly budget.`;
+    infoEl.innerHTML = `You have <strong>${fmtCurrency(state.budget - expenses)}</strong> left of your monthly budget.`;
     infoEl.className = 'budget-info';
   }
   // Spending limit bar
@@ -1396,7 +1445,7 @@ function renderDashboard() {
     const limitPct = Math.min(100, (expenses / state.spendingLimit) * 100);
     document.getElementById('limit-bar').style.width = limitPct + '%';
     document.getElementById('limit-bar').style.background = limitPct >= 100 ? 'var(--red)' : limitPct >= 80 ? 'var(--orange)' : 'var(--green)';
-    document.getElementById('limit-bar-label').textContent = `$${expenses.toFixed(0)} / $${state.spendingLimit.toFixed(0)}`;
+    document.getElementById('limit-bar-label').textContent = `${fmtCurrency(expenses)} / ${fmtCurrency(state.spendingLimit)}`;
   } else {
     limitSection.style.display = 'none';
   }
@@ -1404,7 +1453,7 @@ function renderDashboard() {
   const banner = document.getElementById('overbudget-banner');
   if (state.spendingLimit && expenses > state.spendingLimit) {
     banner.style.display = 'block';
-    banner.innerHTML = `<div class="overbudget-warning">⛔ −$${(expenses - state.spendingLimit).toFixed(2)} over spending limit!</div>`;
+    banner.innerHTML = `<div class="overbudget-warning">⛔ −${fmtCurrency(expenses - state.spendingLimit)} over spending limit!</div>`;
   } else {
     banner.style.display = 'none';
   }
@@ -1425,7 +1474,7 @@ function renderDashboard() {
         <div class="cat-row">
           <div class="cat-icon" style="background:${c.bg}">${c.icon}</div>
           <div class="cat-info"><div class="cat-name">${c.label}</div><div class="cat-type">${pct.toFixed(0)}% of spending</div></div>
-          <div class="cat-amount">$${amt.toFixed(2)}</div>
+          <div class="cat-amount">${fmtCurrency(amt)}</div>
         </div>
         <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${c.color}"></div></div>
       </div>`;
@@ -1462,7 +1511,7 @@ function renderCatChart(catTotals) {
       responsive: true,
       plugins: {
         legend: { position: 'bottom', labels: { color: '#8b92a8', font: { size: 12, family: 'DM Sans' }, padding: 12, boxWidth: 12 } },
-        tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.toFixed(2)}` } }
+        tooltip: { callbacks: { label: ctx => ` ${fmtCurrency(ctx.parsed)}` } }
       },
       cutout: '65%',
     }
@@ -1501,7 +1550,7 @@ function renderTransactions() {
             <div class="tx-name">${label}</div>
             <div class="tx-meta">${c.label} · ${formatTime(t.date)}</div>
           </div>
-          <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '-'}$${t.amount.toFixed(2)}</div>
+          <div class="tx-amount ${t.type}">${t.type === 'income' ? '+' : '-'}${fmtCurrency(t.amount)}</div>
         </div>`;
       }).join('')}
     </div>`).join('');
@@ -1510,8 +1559,8 @@ function renderTransactions() {
 function renderInvestments() {
   const totalInv = state.investments.reduce((s, i) => s + i.amount, 0);
   const deducted = state.investments.filter(i => i.deduct).reduce((s, i) => s + i.amount, 0);
-  document.getElementById('inv-total-display').textContent = '$' + totalInv.toFixed(2);
-  document.getElementById('inv-balance-note').textContent = `Deducted from balance: $${deducted.toFixed(2)}`;
+  document.getElementById('inv-total-display').textContent = fmtCurrency(totalInv);
+  document.getElementById('inv-balance-note').textContent = `Deducted from balance: ${fmtCurrency(deducted)}`;
   // Type grid
   const typeGrid = document.getElementById('inv-type-grid');
   const typeTotals = {};
@@ -1521,7 +1570,7 @@ function renderInvestments() {
     const t = INV_TYPES[type] || INV_TYPES.other;
     return `<div class="inv-type-card">
       <div class="inv-type-label" style="color:${t.color}">${t.icon} ${t.label}</div>
-      <div class="inv-type-value">$${amt.toFixed(2)}</div>
+      <div class="inv-type-value">${fmtCurrency(amt)}</div>
     </div>`;
   }).join('') : '';
   // Chart
@@ -1540,7 +1589,7 @@ function renderInvestments() {
         <div style="font-weight:600;font-size:14px">${inv.name}</div>
         <div style="font-size:12px;color:var(--text-2);margin-top:2px">${t.label} · ${formatDate(inv.date)} ${inv.deduct ? '· <span style="color:var(--red)">−balance</span>' : ''}</div>
       </div>
-      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px">$${inv.amount.toFixed(2)}</div>
+      <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:15px">${fmtCurrency(inv.amount)}</div>
     </div>`;
   }).join('');
 }
@@ -1570,10 +1619,10 @@ function renderInvChart(typeTotals) {
     },
     options: {
       responsive: true,
-      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` $${ctx.parsed.y.toFixed(2)}` } } },
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${fmtCurrency(ctx.parsed.y)}` } } },
       scales: {
         x: { ticks: { color: '#8b92a8', font: { size: 11 } }, grid: { display: false } },
-        y: { ticks: { color: '#8b92a8', font: { size: 11 }, callback: v => '$' + v }, grid: { color: '#ffffff08' } }
+        y: { ticks: { color: '#8b92a8', font: { size: 11 }, callback: v => fmtCurrency(v) }, grid: { color: '#ffffff08' } }
       }
     }
   });
@@ -1593,14 +1642,14 @@ async function runAiQuery(prompt) {
   const invTotal = state.investments.reduce((s, i) => s + i.amount, 0);
   const invByType = {};
   state.investments.forEach(i => { invByType[INV_TYPES[i.type]?.label || i.type] = (invByType[INV_TYPES[i.type]?.label || i.type] || 0) + i.amount; });
-  const context = `User Financial Data:
-- Balance: $${state.balance.toFixed(2)} (starting), Current: $${balance.toFixed(2)}
-- Monthly Budget: ${state.budget ? '$' + state.budget.toFixed(2) : 'not set'} (${Math.round(budgetPct)}% utilized)
-- Spending Limit: ${state.spendingLimit ? '$' + state.spendingLimit.toFixed(2) : 'not set'}
-- Total Expenses: $${expenses.toFixed(2)}
-- Total Income (logged): $${income.toFixed(2)}
+  const context = `User Financial Data (currency: ${state.currency || 'USD'}):
+- Balance: ${fmtCurrency(state.balance)} (starting), Current: ${fmtCurrency(balance)}
+- Monthly Budget: ${state.budget ? fmtCurrency(state.budget) : 'not set'} (${Math.round(budgetPct)}% utilized)
+- Spending Limit: ${state.spendingLimit ? fmtCurrency(state.spendingLimit) : 'not set'}
+- Total Expenses: ${fmtCurrency(expenses)}
+- Total Income (logged): ${fmtCurrency(income)}
 - Spending by category: ${JSON.stringify(catTotals)}
-- Total Investments: $${invTotal.toFixed(2)}
+- Total Investments: ${fmtCurrency(invTotal)}
 - Investment breakdown: ${JSON.stringify(invByType)}
 - Number of transactions: ${state.transactions.length}`;
   try {
